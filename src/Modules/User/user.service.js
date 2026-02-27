@@ -3,7 +3,13 @@ import { deleteOne } from "../../DB/Repository/delete.repo.js"
 import { findById, findOne } from "../../DB/Repository/get.repo.js"
 import { findByIdAndUpdate } from "../../DB/Repository/update.repo.js"
 import { conflictException, notFoundException } from "../../utils/response/failResponse.js"
+import { createTokens } from "../../utils/security/token.util.js"
 
+export function refreshToken(user) {
+    const { accessToken } = createTokens(user)
+
+    return { accessToken }
+}
 
 export async function updateUser(id, body) {
     const { name, email, phone, DOB } = body

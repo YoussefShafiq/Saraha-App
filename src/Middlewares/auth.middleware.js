@@ -1,27 +1,43 @@
 import jwt from "jsonwebtoken";
-import { getSecretKey } from "../utils/security/secret.util.js";
+import { getSignature } from "../utils/security/secret.util.js";
 import userModel from "../DB/Models/user.model.js";
+import { badRequestException, notAuthorizedException } from "../utils/response/failResponse.js";
+import { TokenTypes } from "../utils/enums/security.enum.js";
 
 
-export async function verifyToken(req, res, next) {
-    const authHeader = req.headers.authorization;
+export function verifyToken(refresh = false) {
+    return async (req, res, next) => {
+        const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        throw new Error('Unauthorized access, token missing', { cause: { statusCode: 403 } });
+        if (!authHeader) {
+            notAuthorizedException('Unauthorized access, token missing')
+        }
+
+        const [authType, token] = authHeader.split(" ");
+
+        if (authType != 'Bearer') {
+            notAuthorizedException('Unauthorized access, Invalid token type')
+        }
+
+        const decodedToken = jwt.decode(token);
+        const role = decodedToken?.aud;
+        const tokenType = decodedToken.type; //access or refresh
+
+        if (refresh && tokenType != TokenTypes.refresh || !refresh && tokenType != TokenTypes.access) {
+            notAuthorizedException('Unauthorized access, Invalid token type')
+        }
+
+        const { accessSignature, refreshSignature } = getSignature(role)
+        const signature = tokenType == TokenTypes.access ? accessSignature : refreshSignature
+
+        const verified = jwt.verify(token, signature);
+
+        const user = await userModel.findById(verified.sub)
+        if (!user) {
+            notAuthorizedException('Unauthorized access, user not found')
+        }
+
+        req.user = user;
+        next();
     }
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.decode(token);
-    const role = decoded?.aud;
-
-    const verified = jwt.verify(token, getSecretKey(role));
-
-
-    const user = await userModel.findById(verified.sub)
-    if (!user) {
-        throw new Error('Unauthorized access, user not found', { cause: { statusCode: 403 } });
-    }
-
-    req.id = verified.sub;
-    next();
 }

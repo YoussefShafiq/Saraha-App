@@ -3,10 +3,12 @@ import { encrypt, hash } from "../../utils/security/crypto.util.js";
 import { badRequestException, conflictException, notFoundException } from "../../utils/response/failResponse.js"
 import bcrypt from 'bcryptjs'
 import jwt from "jsonwebtoken";
-import { getSecretKey } from "../../utils/security/secret.util.js";
+import { getSignature } from "../../utils/security/secret.util.js";
 import { generateOTP } from "../../utils/security/genOtp.util.js";
 import { sendEmail } from "../../utils/email/sendEmail.util.js";
 import { findOne } from "../../DB/Repository/get.repo.js";
+import { TokenTypes } from "../../utils/enums/security.enum.js";
+import { createTokens } from "../../utils/security/token.util.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body
@@ -90,20 +92,8 @@ export async function login(body) {
         notFoundException('invalid credentials')
     }
 
-    const token = jwt.sign(
-        {
+    const tokens = createTokens(user)
 
-        },
-        getSecretKey(user.role),
-        {
-            expiresIn: '1h',
-            audience: user.role,
-            subject: user._id.toString()
-        }
-    )
-
-    return {
-        token
-    }
+    return tokens
 
 }
