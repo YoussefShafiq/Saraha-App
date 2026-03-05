@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 import { decrypt, encrypt, hash } from "../../utils/security/crypto.util.js";
-import { UserGenders, UserRoles } from "../../utils/enums/user.enum.js";
+import { providers, UserGenders, UserRoles } from "../../utils/enums/user.enum.js";
 
 const userSchema = new Schema({
     name: {
@@ -22,7 +22,9 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: function () {
+            return this.provider == providers.system
+        },
         select: false
     },
     role: {
@@ -37,7 +39,6 @@ const userSchema = new Schema({
     },
     phone: {
         type: String,
-        required: true,
         set: function (value) {
             return encrypt(value)
         },
@@ -63,6 +64,12 @@ const userSchema = new Schema({
         type: Date,
         select: false,
     },
+    provider: {
+        type: String,
+        enum: Object.values(providers),
+        default: providers.system
+    },
+    profilePicture: String
 }, {
     timestamps: true,
     virtuals: true,

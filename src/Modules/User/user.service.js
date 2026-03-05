@@ -1,6 +1,6 @@
 import userModel from "../../DB/Models/user.model.js"
 import { deleteOne } from "../../DB/Repository/delete.repo.js"
-import { findById, findOne } from "../../DB/Repository/get.repo.js"
+import { find, findById, findOne } from "../../DB/Repository/get.repo.js"
 import { findByIdAndUpdate } from "../../DB/Repository/update.repo.js"
 import { conflictException, notFoundException } from "../../utils/response/failResponse.js"
 import { createTokens } from "../../utils/security/token.util.js"
@@ -40,4 +40,9 @@ export async function deleteUser(_id) {
 export async function getUserById(id) {
     const user = await findById(userModel, id, '+isVerified +otp +otpExpires')
     return user
+}
+
+export async function getAllUsers() {
+    const users = await find(userModel, {}, '')
+    return users
 }

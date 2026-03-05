@@ -4,13 +4,14 @@ import testDbConncection from "./DB/connection.js";
 import authRouter from "./Modules/Auth/auth.controller.js";
 import { globalErrorHandling } from "./utils/response/failResponse.js";
 import userRouter from "./Modules/User/user.controller.js";
+import cors from "cors";
 
 
 
 export default async function bootstrap() {
     const app = express();
     await testDbConncection()
-    app.use(express.json())
+    app.use(express.json(), cors())
     app.use('/auth', authRouter)
     app.use('/user', userRouter)
     app.use(globalErrorHandling)

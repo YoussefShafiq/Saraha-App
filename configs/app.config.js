@@ -19,3 +19,4 @@ export const ADMIN_REFRESH_SECRET_KEY = process.env.ADMIN_REFRESH_SECRET_KEY || 
 export const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || ''
 export const EMAIL_USER = process.env.EMAIL_USER || ''
 export const EMAIL_PASS = process.env.EMAIL_PASS || ''
+export const WEB_CLIENT_ID = process.env.WEB_CLIENT_ID || ''

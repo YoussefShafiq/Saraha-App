@@ -7,8 +7,10 @@ import { getSignature } from "../../utils/security/secret.util.js";
 import { generateOTP } from "../../utils/security/genOtp.util.js";
 import { sendEmail } from "../../utils/email/sendEmail.util.js";
 import { findOne } from "../../DB/Repository/get.repo.js";
-import { TokenTypes } from "../../utils/enums/security.enum.js";
 import { createTokens } from "../../utils/security/token.util.js";
+import { OAuth2Client } from "google-auth-library";
+import { WEB_CLIENT_ID } from "../../../configs/app.config.js";
+import { providers } from "../../utils/enums/user.enum.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body
@@ -95,5 +97,52 @@ export async function login(body) {
     const tokens = createTokens(user)
 
     return tokens
+
+}
+
+export async function verifyGoogleToken(idToken) {
+    const client = new OAuth2Client();
+
+    const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: WEB_CLIENT_ID,
+    });
+
+    return ticket.getPayload()
+}
+
+export async function signupWithGoogle(body) {
+    const { idToken } = body
+    const payload = await verifyGoogleToken(idToken)
+
+    if (!payload.email_verified) {
+        badRequestException('email not verified by google')
+    }
+
+    let user = await findOne(userModel, { email: payload.email })
+
+    if (user) {
+        if (user.provider != providers.google) {
+            badRequestException('account already exist, login with your credentials')
+        }
+        const tokens = createTokens(user)
+        return {
+            tokens,
+            message: 'logged in with google successfully',
+            status: 200
+        }
+    }
+
+    const newUser = await userModel.create({
+        name: payload.name, email: payload.email, provider: providers.google, profilePicture: payload.picture
+    })
+
+    const tokens = createTokens(newUser)
+
+    return {
+        tokens,
+        message: 'signed up with google successfully',
+        status: 201
+    }
 
 }
