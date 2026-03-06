@@ -17,3 +17,12 @@ export const signupSchema = {
         gender: Joi.string().valid(...Object.values(UserGenders)).default(UserGenders.male),
     }).required()
 }
+export const loginSchema = {
+    body: Joi.object({
+        email: Joi.string().email().required().messages({
+            "any.required": "email is required",
+            "string.email": "invalid email"
+        }),
+        password: Joi.string().required().min(5)
+    }).required()
+}

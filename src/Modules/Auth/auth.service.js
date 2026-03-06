@@ -11,7 +11,7 @@ import { createTokens } from "../../utils/security/token.util.js";
 import { OAuth2Client } from "google-auth-library";
 import { WEB_CLIENT_ID } from "../../../configs/app.config.js";
 import { providers } from "../../utils/enums/user.enum.js";
-import { signupSchema } from "../../utils/validationSchemas/signup.schema.js";
+import { signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body

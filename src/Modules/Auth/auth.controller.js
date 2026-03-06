@@ -2,7 +2,7 @@ import { Router } from "express";
 import successResponse from "../../utils/response/successResponse.js";
 import { login, resendOTP, signup, signupWithGoogle, verifyOtp } from "./auth.service.js";
 import { validation } from "../../Middlewares/validation.middleware.js";
-import { signupSchema } from "../../utils/validationSchemas/signup.schema.js";
+import { loginSchema, signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 
 const authRouter = Router()
 
@@ -26,7 +26,7 @@ authRouter.post('/resend-otp', async (req, res) => {
     return successResponse({ res, message: 'OTP resent successfully', statusCode: 200 })
 })
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', validation(loginSchema), async (req, res) => {
     const result = await login(req.body)
     return successResponse({ res, data: result, message: 'logged in successfully', statusCode: 200 })
 })
