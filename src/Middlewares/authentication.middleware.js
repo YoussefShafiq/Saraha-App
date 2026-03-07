@@ -5,7 +5,7 @@ import { badRequestException, notAuthorizedException } from "../utils/response/f
 import { TokenTypes } from "../utils/enums/security.enum.js";
 
 
-export function verifyToken(refresh = false) {
+export function authentication(refresh = false) {
     return async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
