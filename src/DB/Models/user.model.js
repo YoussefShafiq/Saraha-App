@@ -69,7 +69,14 @@ const userSchema = new Schema({
         enum: Object.values(providers),
         default: providers.system
     },
-    profilePicture: String
+    profilePicture: String,
+    coverPicture: String,
+    gallery: Array,
+    views: {
+        type: Number,
+        select: false,
+        default: 0
+    }
 }, {
     timestamps: true,
     virtuals: true,

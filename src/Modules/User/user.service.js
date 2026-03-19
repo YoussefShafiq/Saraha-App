@@ -1,9 +1,13 @@
+import { rmSync } from "node:fs"
 import userModel from "../../DB/Models/user.model.js"
 import { deleteOne } from "../../DB/Repository/delete.repo.js"
 import { find, findById, findOne } from "../../DB/Repository/get.repo.js"
 import { findByIdAndUpdate } from "../../DB/Repository/update.repo.js"
+import { changeDir } from "../../utils/Multer/multer.config.js"
 import { conflictException, notFoundException } from "../../utils/response/failResponse.js"
 import { createTokens } from "../../utils/security/token.util.js"
+import path from "node:path";
+import { UserRoles } from "../../utils/enums/user.enum.js"
 
 export function refreshToken(user) {
     const { accessToken } = createTokens(user)
@@ -37,12 +41,75 @@ export async function deleteUser(_id) {
     return deletedUser
 }
 
-export async function getUserById(id) {
-    const user = await findById(userModel, id, '+isVerified +otp +otpExpires')
+export async function getProfile(id) {
+    const user = await findById(userModel, id)
+
     return user
+}
+
+export async function getUserById(id, role) {
+    await findByIdAndUpdate(userModel, id, { $inc: { views: 1 } })
+
+    const newUser = await findById(userModel, id, `${role == UserRoles.admin ? '+views' : ''}`)
+
+    return newUser
 }
 
 export async function getAllUsers() {
     const users = await find(userModel, {}, '')
     return users
+}
+
+export async function uploadProfilePicture(profilePicture, id) {
+    const user = await findById(userModel, id)
+
+    let movedOldGalleryPath
+    if (user?.profilePicture) {
+        movedOldGalleryPath = `/uploads/gallery/${path.basename(user.profilePicture)}`
+        changeDir(user.profilePicture, 'uploads/gallery')
+    }
+
+    const update = { profilePicture }
+    if (movedOldGalleryPath) {
+        update.$push = { gallery: movedOldGalleryPath }
+    }
+
+    const updatedUser = await findByIdAndUpdate(userModel, id, update, { new: true })
+    return updatedUser
+}
+
+export async function uploadCoverPicture(coverPicture, id) {
+    const user = await findById(userModel, id)
+
+    let movedOldGalleryPath
+    if (user?.coverPicture) {
+        movedOldGalleryPath = `/uploads/gallery/${path.basename(user.coverPicture)}`
+        changeDir(user.coverPicture, 'uploads/gallery')
+    }
+
+    const update = { coverPicture }
+    if (movedOldGalleryPath) {
+        update.$push = { gallery: movedOldGalleryPath }
+    }
+
+    const updatedUser = await findByIdAndUpdate(userModel, id, update, { new: true })
+    return updatedUser
+}
+
+export async function deleteProfilePicture(id) {
+    const user = await findById(userModel, id)
+
+    const imageResolvedPath = path.resolve('.' + user.profilePicture)
+    rmSync(imageResolvedPath)
+    const updatedUser = await findByIdAndUpdate(userModel, id, { profilePicture: null }, { new: true })
+    return updatedUser
+}
+
+export async function deleteCoverPicture(id) {
+    const user = await findById(userModel, id)
+
+    const imageResolvedPath = path.resolve('.' + user.coverPicture)
+    rmSync(imageResolvedPath)
+    const updatedUser = await findByIdAndUpdate(userModel, id, { coverPicture: null }, { new: true })
+    return updatedUser
 }

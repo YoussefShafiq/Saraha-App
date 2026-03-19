@@ -16,6 +16,10 @@ export function badRequestException(message = 'bad request') {
     throw new Error(message, { cause: { statusCode: 400 } })
 }
 
+export function unhandledException(message = 'unhandled') {
+    throw new Error(message, { cause: { statusCode: 500 } })
+}
+
 export function globalErrorHandling(err, req, res, next) {
     return NODE_ENV == 'dev' ?
         res.status(err.cause?.statusCode || 500).json({

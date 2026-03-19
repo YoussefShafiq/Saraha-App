@@ -10,6 +10,11 @@ export function validation(schema) {
             if (validateResult.error?.details.length > 0) {
                 validationErrors.push(validateResult.error)
             }
+            if (schemaKey != 'query') {
+                req[schemaKey] = validateResult.value
+            } else {
+                req['v' + schemaKey] = validateResult.value
+            }
         }
 
         let message = validationErrors.map(v => v.message)
