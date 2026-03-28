@@ -1,6 +1,6 @@
 import { Router } from "express";
 import successResponse from "../../utils/response/successResponse.js";
-import { login, resendOTP, signup, signupWithGoogle, verifyOtp } from "./auth.service.js";
+import { forgetPassword, login, resendOTP, resetPassword, signup, signupWithGoogle, verifyOtp, verifyResetPasswordOtp } from "./auth.service.js";
 import { validation } from "../../Middlewares/validation.middleware.js";
 import { loginSchema, signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 
@@ -29,6 +29,21 @@ authRouter.post('/resend-otp', async (req, res) => {
 authRouter.post('/login', validation(loginSchema), async (req, res) => {
     const result = await login(req.body)
     return successResponse({ res, data: result, message: 'logged in successfully', statusCode: 200 })
+})
+
+authRouter.post('/forget-password', async (req, res) => {
+    await forgetPassword(req.body)
+    return successResponse({ res, message: 'check your email for OTP verification', statusCode: 200 })
+})
+
+authRouter.post('/verify-reset-password-otp', async (req, res) => {
+    await verifyResetPasswordOtp(req.body)
+    return successResponse({ res, message: 'OTP verified successfully', statusCode: 200 })
+})
+
+authRouter.post('/reset-password', async (req, res) => {
+    await resetPassword(req.body)
+    return successResponse({ res, message: 'password reset successfully', statusCode: 200 })
 })
 
 export default authRouter

@@ -1,17 +1,19 @@
 import userModel from "../../DB/Models/user.model.js"
 import { encrypt, hash } from "../../utils/security/crypto.util.js";
 import { badRequestException, conflictException, notFoundException } from "../../utils/response/failResponse.js"
-import bcrypt from 'bcryptjs'
+import bcrypt, { compare } from 'bcryptjs'
 import jwt from "jsonwebtoken";
 import { getSignature } from "../../utils/security/secret.util.js";
 import { generateOTP } from "../../utils/security/genOtp.util.js";
 import { sendEmail } from "../../utils/email/sendEmail.util.js";
-import { findOne } from "../../DB/Repository/get.repo.js";
+import { find, findOne } from "../../DB/Repository/get.repo.js";
 import { createTokens } from "../../utils/security/token.util.js";
 import { OAuth2Client } from "google-auth-library";
 import { WEB_CLIENT_ID } from "../../../configs/app.config.js";
 import { providers } from "../../utils/enums/user.enum.js";
 import { signupSchema } from "../../utils/validationSchemas/auth.schema.js";
+import { del, get, incr, set, ttl } from "../../DB/Repository/redis.repo.js";
+import { userFailLoginAttempts, userLoginBlocked, userResetPasswordOtp } from "../../DB/redis.keys.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body
@@ -81,6 +83,12 @@ export async function resendOTP(body) {
 export async function login(body) {
     const { email, password } = body
 
+    const isLoginBlocked = await ttl(userLoginBlocked(email))
+    if (isLoginBlocked !== -2 && isLoginBlocked !== -1) {
+        badRequestException(`login blocked, please try again in ${Math.ceil(isLoginBlocked / 60)} minutes`)
+    }
+
+
     const user = await findOne(userModel, { email }, '+password +isVerified')
     if (!user) {
         notFoundException('invalid credentials')
@@ -93,6 +101,11 @@ export async function login(body) {
     const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
+        const incrementedFailLoginAttempts = await incr(userFailLoginAttempts(email))
+        if (incrementedFailLoginAttempts > 4) {
+            await set(userLoginBlocked(email), 1, 60 * 5)
+            await del(userFailLoginAttempts(email))
+        }
         notFoundException('invalid credentials')
     }
 
@@ -147,4 +160,55 @@ export async function signupWithGoogle(body) {
         status: 201
     }
 
+}
+
+export async function forgetPassword({ email }) {
+    const existingUser = await findOne(userModel, { email }, '+isVerified')
+
+    if (!existingUser || !existingUser.isVerified) {
+        notFoundException('user not found or not verified')
+    }
+
+    const otp = generateOTP()
+
+    await sendEmail(email, otp, 'Reset Your Password')
+
+    await set(userResetPasswordOtp(email), await hash(otp), 5 * 60)
+
+    return
+}
+
+async function verifyResetPasswordOtpService({ email, otp }) {
+    const hashedOtp = await get(userResetPasswordOtp(email))
+    if (!hashedOtp) {
+        badRequestException('invalid OTP')
+    }
+
+    const isOtpValid = await bcrypt.compare(otp, hashedOtp)
+
+    if (!isOtpValid) {
+        badRequestException('invalid OTP')
+    }
+}
+
+export async function verifyResetPasswordOtp({ email, otp }) {
+    await verifyResetPasswordOtpService({ email, otp })
+
+    return
+}
+
+export async function resetPassword({ email, password, otp }) {
+    const existingUser = await findOne(userModel, { email }, '+isVerified')
+
+    if (!existingUser || !existingUser.isVerified) {
+        notFoundException('user not found or not verified')
+    }
+
+    await verifyResetPasswordOtpService({ email, otp })
+
+    const hashedPassword = await hash(password)
+    existingUser.password = hashedPassword
+    await existingUser.save()
+
+    return
 }

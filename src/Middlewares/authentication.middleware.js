@@ -3,9 +3,10 @@ import { getSignature } from "../utils/security/secret.util.js";
 import userModel from "../DB/Models/user.model.js";
 import { badRequestException, notAuthorizedException } from "../utils/response/failResponse.js";
 import { TokenTypes } from "../utils/enums/security.enum.js";
+import { findById, findOne } from "../DB/Repository/get.repo.js";
 
 
-export function authentication(refresh = false) {
+export function authentication({ refresh, select } = { refresh: false, select: '' }) {
     return async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
@@ -32,9 +33,13 @@ export function authentication(refresh = false) {
 
         const verified = jwt.verify(token, signature);
 
-        const user = await userModel.findById(verified.sub)
+        const user = await findOne(userModel, { _id: verified.sub }, select)
         if (!user) {
             notAuthorizedException('Unauthorized access, user not found')
+        }
+
+        if (user.changeCredentialsAt > new Date(verified.iat * 1000)) {
+            notAuthorizedException('You are logged out, login again')
         }
 
         req.user = user;

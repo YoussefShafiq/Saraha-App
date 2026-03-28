@@ -76,6 +76,10 @@ const userSchema = new Schema({
         type: Number,
         select: false,
         default: 0
+    },
+    changeCredentialsAt: {
+        type: Date,
+        default: Date.now()
     }
 }, {
     timestamps: true,

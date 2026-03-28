@@ -4,10 +4,12 @@ import { deleteOne } from "../../DB/Repository/delete.repo.js"
 import { find, findById, findOne } from "../../DB/Repository/get.repo.js"
 import { findByIdAndUpdate } from "../../DB/Repository/update.repo.js"
 import { changeDir } from "../../utils/Multer/multer.config.js"
-import { conflictException, notFoundException } from "../../utils/response/failResponse.js"
+import { badRequestException, conflictException, notFoundException } from "../../utils/response/failResponse.js"
 import { createTokens } from "../../utils/security/token.util.js"
 import path from "node:path";
 import { UserRoles } from "../../utils/enums/user.enum.js"
+import bcrypt from 'bcryptjs'
+import { hash } from "../../utils/security/crypto.util.js"
 
 export function refreshToken(user) {
     const { accessToken } = createTokens(user)
@@ -112,4 +114,28 @@ export async function deleteCoverPicture(id) {
     rmSync(imageResolvedPath)
     const updatedUser = await findByIdAndUpdate(userModel, id, { coverPicture: null }, { new: true })
     return updatedUser
+}
+
+export async function changePassword(user, { password, newPassword }) {
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
+    if (!isPasswordValid) {
+        badRequestException('invalid old password')
+    }
+
+    const hashedNewPassword = await hash(newPassword)
+    await findByIdAndUpdate(userModel, user._id, { password: hashedNewPassword }, { new: true })
+    return
+}
+
+export async function logout(user, allDevices = false) {
+
+    if (allDevices) {
+        user.changeCredentialsAt = new Date()
+        await user.save()
+    } else {
+
+    }
+
+    return
 }

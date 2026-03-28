@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authentication } from "../../Middlewares/authentication.middleware.js";
-import { deleteCoverPicture, deleteProfilePicture, deleteUser, getAllUsers, getProfile, getUserById, refreshToken, updateUser, uploadCoverPicture, uploadProfilePicture } from "./user.service.js";
+import { changePassword, deleteCoverPicture, deleteProfilePicture, deleteUser, getAllUsers, getProfile, getUserById, logout, refreshToken, updateUser, uploadCoverPicture, uploadProfilePicture } from "./user.service.js";
 import successResponse from "../../utils//response/successResponse.js";
 import { authorization } from "../../Middlewares/auhorization.middleware.js";
 import { UserRoles } from "../../utils/enums/user.enum.js";
@@ -63,6 +63,16 @@ userRouter.delete('/delete-profile-image', authentication(), async (req, res) =>
 userRouter.delete('/delete-cover-image', authentication(), async (req, res) => {
     const result = await deleteCoverPicture(req.user?.id)
     return successResponse({ res, data: result, message: 'cover picture deleted successfully', statusCode: 200 })
+})
+
+userRouter.patch('/change-password', authentication({ select: '+password' }), async (req, res) => {
+    await changePassword(req.user, req.body)
+    return successResponse({ res, message: 'password changed successfully', statusCode: 200 })
+})
+
+userRouter.post('/logout', authentication(), async (req, res) => {
+    await logout(req.user, req.body.allDevices)
+    return successResponse({ res, message: 'logged out successfully', statusCode: 200 })
 })
 
 export default userRouter

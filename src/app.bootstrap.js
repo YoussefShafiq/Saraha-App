@@ -6,12 +6,16 @@ import { globalErrorHandling } from "./utils/response/failResponse.js";
 import userRouter from "./Modules/User/user.controller.js";
 import cors from "cors";
 import path from "path"
+import { testRedisConnection } from "./DB/redis.connection.js";
 
 
 
 export default async function bootstrap() {
     const app = express();
     await testDbConncection()
+    await testRedisConnection()
+
+
     app.use(express.json(), cors())
     app.use('/uploads', express.static(path.resolve('./uploads')))
     app.use('/auth', authRouter)
