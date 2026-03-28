@@ -9,3 +9,7 @@ export function userLoginBlocked(email) {
 export function userResetPasswordOtp(email) {
     return `user:reset:password:otp:${email}`
 }
+
+export function blockedToken(tokenId) {
+    return `blocked:token:${tokenId}`
+}

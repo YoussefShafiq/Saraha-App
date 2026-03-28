@@ -1,16 +1,19 @@
 import jwt from "jsonwebtoken";
 import { TokenTypes } from "../enums/security.enum.js";
 import { getSignature } from "./secret.util.js";
+import { randomUUID } from "node:crypto";
 
-export function createTokens(user, { refresh = false } = {}) {
+export function createTokens(user, decodedToken, { refresh } = { refresh: false }) {
     const { accessSignature, refreshSignature } = getSignature(user.role)
 
     let accessToken
     let refreshToken
+    const tokenId = refresh ? decodedToken.id : randomUUID()
 
     accessToken = jwt.sign(
         {
-            type: TokenTypes.access
+            type: TokenTypes.access,
+            id: tokenId
         },
         accessSignature,
         {
@@ -23,7 +26,8 @@ export function createTokens(user, { refresh = false } = {}) {
     !refresh && (
         refreshToken = jwt.sign(
             {
-                type: TokenTypes.refresh
+                type: TokenTypes.refresh,
+                id: tokenId
             },
             refreshSignature,
             {

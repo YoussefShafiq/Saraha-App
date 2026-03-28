@@ -10,9 +10,11 @@ import path from "node:path";
 import { UserRoles } from "../../utils/enums/user.enum.js"
 import bcrypt from 'bcryptjs'
 import { hash } from "../../utils/security/crypto.util.js"
+import { set } from "../../DB/Repository/redis.repo.js"
+import { blockedToken } from "../../DB/redis.keys.js"
 
-export function refreshToken(user) {
-    const { accessToken } = createTokens(user)
+export function refreshToken(user, decodedToken) {
+    const { accessToken } = createTokens(user, decodedToken, { refresh: true })
 
     return { accessToken }
 }
@@ -128,13 +130,14 @@ export async function changePassword(user, { password, newPassword }) {
     return
 }
 
-export async function logout(user, allDevices = false) {
+export async function logout(user, allDevices = false, decodedToken) {
 
     if (allDevices) {
         user.changeCredentialsAt = new Date()
         await user.save()
     } else {
-
+        const ttl = decodedToken.iat + 60 * 60 * 24 * 30 * 1000 - Date.now()
+        await set(blockedToken(decodedToken.id), 1, ttl)
     }
 
     return

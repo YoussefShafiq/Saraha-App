@@ -4,6 +4,8 @@ import userModel from "../DB/Models/user.model.js";
 import { badRequestException, notAuthorizedException } from "../utils/response/failResponse.js";
 import { TokenTypes } from "../utils/enums/security.enum.js";
 import { findById, findOne } from "../DB/Repository/get.repo.js";
+import { blockedToken } from "../DB/redis.keys.js";
+import { get } from "../DB/Repository/redis.repo.js";
 
 
 export function authentication({ refresh, select } = { refresh: false, select: '' }) {
@@ -41,8 +43,15 @@ export function authentication({ refresh, select } = { refresh: false, select: '
         if (user.changeCredentialsAt > new Date(verified.iat * 1000)) {
             notAuthorizedException('You are logged out, login again')
         }
+        console.log({ tokenId: decodedToken.id });
+
+        const isLoggedOut = await get(blockedToken(decodedToken.id))
+        if (isLoggedOut) {
+            notAuthorizedException('You are logged out, login again')
+        }
 
         req.user = user;
+        req.decodedToken = decodedToken;
         next();
     }
 }

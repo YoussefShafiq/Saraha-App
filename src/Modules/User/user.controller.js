@@ -10,8 +10,8 @@ import uploadLocal from "../../utils/Multer/multer.config.js";
 
 const userRouter = Router()
 
-userRouter.post('/refresh-token', authentication(true), async (req, res) => {
-    const result = refreshToken(req.user)
+userRouter.post('/refresh-token', authentication({ refresh: true }), async (req, res) => {
+    const result = refreshToken(req.user, req.decodedToken)
     return successResponse({ res, data: result, message: 'Token refreshed successfully', statusCode: 200 })
 })
 
@@ -71,7 +71,7 @@ userRouter.patch('/change-password', authentication({ select: '+password' }), as
 })
 
 userRouter.post('/logout', authentication(), async (req, res) => {
-    await logout(req.user, req.body.allDevices)
+    await logout(req.user, req.body.allDevices, req.decodedToken)
     return successResponse({ res, message: 'logged out successfully', statusCode: 200 })
 })
 
