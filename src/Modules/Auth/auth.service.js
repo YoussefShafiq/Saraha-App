@@ -13,7 +13,7 @@ import { WEB_CLIENT_ID } from "../../../configs/app.config.js";
 import { providers } from "../../utils/enums/user.enum.js";
 import { signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 import { del, get, incr, set, ttl } from "../../DB/Repository/redis.repo.js";
-import { userFailLoginAttempts, userLoginBlocked, userResetPasswordOtp } from "../../DB/redis.keys.js";
+import { forgetPasswordOtpAttempts, forgetPasswordOtpBlocked, userFailLoginAttempts, userLoginBlocked, userResetPasswordOtp } from "../../DB/redis.keys.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body
@@ -164,18 +164,52 @@ export async function signupWithGoogle(body) {
 
 export async function forgetPassword({ email }) {
     const existingUser = await findOne(userModel, { email }, '+isVerified')
-
     if (!existingUser || !existingUser.isVerified) {
         notFoundException('user not found or not verified')
     }
 
+    await sendOtpCheck({ email })
+
+    return
+}
+
+export async function resendResetPasswordOtp({ email }) {
+    const existingUser = await findOne(userModel, { email }, '+isVerified')
+    if (!existingUser || !existingUser.isVerified) {
+        notFoundException('user not found or not verified')
+    }
+
+    await sendOtpCheck({ email })
+
+    return
+}
+
+async function sendOtpCheck({ email }) {
+    // check if reset password OTP is already sent
+    const existingResetPasswordOtp = await get(userResetPasswordOtp(email))
+    if (existingResetPasswordOtp) {
+        badRequestException('reset password OTP already sent, please check your email')
+    }
+
+    // check if forget password OTP is blocked
+    const isForgetPasswordOtpBlocked = await ttl(forgetPasswordOtpBlocked(email))
+    if (isForgetPasswordOtpBlocked !== -2 && isForgetPasswordOtpBlocked !== -1) {
+        badRequestException(`forget password OTP blocked, please try again in ${Math.ceil(isForgetPasswordOtpBlocked / 60)} minutes`)
+    }
+
     const otp = generateOTP()
+
+    // check if forget password OTP attempts are exceeded
+    const otpAttemptCount = Number(await get(forgetPasswordOtpAttempts(email))) || 0
+    if (otpAttemptCount > 4) {
+        await set(forgetPasswordOtpBlocked(email), 1, 60 * 10)
+    } else {
+        await set(forgetPasswordOtpAttempts(email), otpAttemptCount + 1, 5 * 60)
+    }
 
     await sendEmail(email, otp, 'Reset Your Password')
 
-    await set(userResetPasswordOtp(email), await hash(otp), 5 * 60)
-
-    return
+    await set(userResetPasswordOtp(email), await hash(otp), 2 * 60)
 }
 
 async function verifyResetPasswordOtpService({ email, otp }) {

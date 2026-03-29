@@ -13,3 +13,11 @@ export function userResetPasswordOtp(email) {
 export function blockedToken(tokenId) {
     return `blocked:token:${tokenId}`
 }
+
+export function forgetPasswordOtpAttempts(email) {
+    return `forget:password:otp:attempts:${email}`
+}
+
+export function forgetPasswordOtpBlocked(email) {
+    return `forget:password:otp:blocked:${email}`
+}

@@ -3,12 +3,12 @@ import { TokenTypes } from "../enums/security.enum.js";
 import { getSignature } from "./secret.util.js";
 import { randomUUID } from "node:crypto";
 
-export function createTokens(user, decodedToken, { refresh } = { refresh: false }) {
+export function createTokens(user, decodedToken, { withoutRefreshToken } = { withoutRefreshToken: false }) {
     const { accessSignature, refreshSignature } = getSignature(user.role)
 
     let accessToken
     let refreshToken
-    const tokenId = refresh ? decodedToken.id : randomUUID()
+    const tokenId = withoutRefreshToken ? decodedToken.id : randomUUID()
 
     accessToken = jwt.sign(
         {
@@ -23,7 +23,7 @@ export function createTokens(user, decodedToken, { refresh } = { refresh: false 
         }
     )
 
-    !refresh && (
+    !withoutRefreshToken && (
         refreshToken = jwt.sign(
             {
                 type: TokenTypes.refresh,

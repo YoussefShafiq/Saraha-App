@@ -1,6 +1,6 @@
 import { Router } from "express";
 import successResponse from "../../utils/response/successResponse.js";
-import { forgetPassword, login, resendOTP, resetPassword, signup, signupWithGoogle, verifyOtp, verifyResetPasswordOtp } from "./auth.service.js";
+import { forgetPassword, login, resendOTP, resendResetPasswordOtp, resetPassword, signup, signupWithGoogle, verifyOtp, verifyResetPasswordOtp } from "./auth.service.js";
 import { validation } from "../../Middlewares/validation.middleware.js";
 import { loginSchema, signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 
@@ -33,6 +33,11 @@ authRouter.post('/login', validation(loginSchema), async (req, res) => {
 
 authRouter.post('/forget-password', async (req, res) => {
     await forgetPassword(req.body)
+    return successResponse({ res, message: 'check your email for OTP verification', statusCode: 200 })
+})
+
+authRouter.post('/send-reset-password-otp', async (req, res) => {
+    await resendResetPasswordOtp(req.body)
     return successResponse({ res, message: 'check your email for OTP verification', statusCode: 200 })
 })
 

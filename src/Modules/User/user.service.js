@@ -14,7 +14,7 @@ import { set } from "../../DB/Repository/redis.repo.js"
 import { blockedToken } from "../../DB/redis.keys.js"
 
 export function refreshToken(user, decodedToken) {
-    const { accessToken } = createTokens(user, decodedToken, { refresh: true })
+    const { accessToken } = createTokens(user, decodedToken, { withoutRefreshToken: true })
 
     return { accessToken }
 }
