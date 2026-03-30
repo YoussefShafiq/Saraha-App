@@ -6,14 +6,15 @@ import jwt from "jsonwebtoken";
 import { getSignature } from "../../utils/security/secret.util.js";
 import { generateOTP } from "../../utils/security/genOtp.util.js";
 import { sendEmail } from "../../utils/email/sendEmail.util.js";
-import { find, findOne } from "../../DB/Repository/get.repo.js";
+import { find, findById, findOne } from "../../DB/Repository/get.repo.js";
 import { createTokens } from "../../utils/security/token.util.js";
 import { OAuth2Client } from "google-auth-library";
 import { WEB_CLIENT_ID } from "../../../configs/app.config.js";
 import { providers } from "../../utils/enums/user.enum.js";
 import { signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 import { del, get, incr, set, ttl } from "../../DB/Repository/redis.repo.js";
-import { forgetPasswordOtpAttempts, forgetPasswordOtpBlocked, userFailLoginAttempts, userLoginBlocked, userResetPasswordOtp } from "../../DB/redis.keys.js";
+import { forgetPasswordOtpAttempts, forgetPasswordOtpBlocked, user2faOtp, userFailLoginAttempts, userLoginBlocked, userResetPasswordOtp } from "../../DB/redis.keys.js";
+import { findByIdAndUpdate } from "../../DB/Repository/update.repo.js";
 
 export async function signup(body) {
     const { name, email, password, phone, DOB, role, gender } = body
@@ -88,7 +89,6 @@ export async function login(body) {
         badRequestException(`login blocked, please try again in ${Math.ceil(isLoginBlocked / 60)} minutes`)
     }
 
-
     const user = await findOne(userModel, { email }, '+password +isVerified')
     if (!user) {
         notFoundException('invalid credentials')
@@ -109,8 +109,42 @@ export async function login(body) {
         notFoundException('invalid credentials')
     }
 
-    const tokens = createTokens(user)
+    if (user.is2faActivated) {
+        const otp = generateOTP()
+        await sendEmail(email, otp, '2FA OTP')
+        await set(user2faOtp(email), await hash(otp), 2 * 60)
+        return {
+            message: '2fa OTP sent to your email'
+        }
+    } else {
+        const tokens = createTokens(user)
+        return { data: tokens, message: 'logged in successfully' }
+    }
 
+}
+
+export async function loginWith2fa({ email, otp }) {
+    const existingUser = await findOne(userModel, { email }, '+is2faActivated')
+    if (!existingUser) {
+        notFoundException('user not found')
+    }
+
+    if (!existingUser.is2faActivated) {
+        badRequestException('2fa is not activated')
+    }
+
+    const hashedOtp = await get(user2faOtp(email))
+    if (!hashedOtp) {
+        badRequestException('invalid OTP')
+    }
+
+    const isOtpValid = await bcrypt.compare(otp, hashedOtp)
+    if (!isOtpValid) {
+        badRequestException('invalid OTP')
+    }
+
+    await del(user2faOtp(email))
+    const tokens = createTokens(existingUser)
     return tokens
 
 }

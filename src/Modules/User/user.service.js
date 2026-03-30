@@ -142,3 +142,8 @@ export async function logout(user, allDevices = false, decodedToken) {
 
     return
 }
+
+export async function toggle2fa( _id, activate ) {
+    await findByIdAndUpdate(userModel, _id, { is2faActivated: activate })
+    return
+}

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import successResponse from "../../utils/response/successResponse.js";
-import { forgetPassword, login, resendOTP, resendResetPasswordOtp, resetPassword, signup, signupWithGoogle, verifyOtp, verifyResetPasswordOtp } from "./auth.service.js";
+import { forgetPassword, login, loginWith2fa, resendOTP, resendResetPasswordOtp, resetPassword, signup, signupWithGoogle, verifyOtp, verifyResetPasswordOtp } from "./auth.service.js";
 import { validation } from "../../Middlewares/validation.middleware.js";
 import { loginSchema, signupSchema } from "../../utils/validationSchemas/auth.schema.js";
 
@@ -27,7 +27,12 @@ authRouter.post('/resend-otp', async (req, res) => {
 })
 
 authRouter.post('/login', validation(loginSchema), async (req, res) => {
-    const result = await login(req.body)
+    const { message, data } = await login(req.body)
+    return successResponse({ res, data, message, statusCode: 200 })
+})
+
+authRouter.post('/login/2fa', async (req, res) => {
+    const result = await loginWith2fa(req.body)
     return successResponse({ res, data: result, message: 'logged in successfully', statusCode: 200 })
 })
 

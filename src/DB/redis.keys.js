@@ -21,3 +21,7 @@ export function forgetPasswordOtpAttempts(email) {
 export function forgetPasswordOtpBlocked(email) {
     return `forget:password:otp:blocked:${email}`
 }
+
+export function user2faOtp(email) {
+    return `user:2fa:otp:${email}`
+}

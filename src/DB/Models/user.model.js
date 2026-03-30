@@ -80,6 +80,10 @@ const userSchema = new Schema({
     changeCredentialsAt: {
         type: Date,
         default: Date.now()
+    },
+    is2faActivated: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true,

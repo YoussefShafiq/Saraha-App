@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authentication } from "../../Middlewares/authentication.middleware.js";
-import { changePassword, deleteCoverPicture, deleteProfilePicture, deleteUser, getAllUsers, getProfile, getUserById, logout, refreshToken, updateUser, uploadCoverPicture, uploadProfilePicture } from "./user.service.js";
+import { changePassword, deleteCoverPicture, deleteProfilePicture, deleteUser, getAllUsers, getProfile, getUserById, logout, refreshToken, toggle2fa, updateUser, uploadCoverPicture, uploadProfilePicture } from "./user.service.js";
 import successResponse from "../../utils//response/successResponse.js";
 import { authorization } from "../../Middlewares/auhorization.middleware.js";
 import { UserRoles } from "../../utils/enums/user.enum.js";
@@ -73,6 +73,11 @@ userRouter.patch('/change-password', authentication({ select: '+password' }), as
 userRouter.post('/logout', authentication(), async (req, res) => {
     await logout(req.user, req.body.allDevices, req.decodedToken)
     return successResponse({ res, message: 'logged out successfully', statusCode: 200 })
+})
+
+userRouter.post('/toggle-2fa', authentication(), async (req, res) => {
+    await toggle2fa(req.user._id, req.body.activate)
+    return successResponse({ res, message: '2fa toggled successfully', statusCode: 200 })
 })
 
 export default userRouter
