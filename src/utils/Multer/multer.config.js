@@ -4,13 +4,13 @@ import path from "node:path";
 import { mkdir, mkdirSync, readdirSync, readFileSync, renameSync, existsSync } from "node:fs";
 import { badRequestException, unhandledException } from "../response/failResponse.js";
 
-export function checkFilesLimit(folderName) {
+export function checkFilesLimit(folderName, limit = 4) {
     return (req, res, next) => {
         try {
             const folderPath = path.resolve('./uploads/' + folderName)
             mkdirSync(folderPath, { recursive: true });
             const items = readdirSync(folderPath)
-            if (items.length >= 4) {
+            if (items.length >= limit) {
                 badRequestException('maximum images limit reached')
             }
             else {
@@ -18,8 +18,6 @@ export function checkFilesLimit(folderName) {
             }
 
         } catch (error) {
-            console.log(error);
-
             unhandledException()
         }
     }
