@@ -10,48 +10,55 @@ import { get } from "../DB/Repository/redis.repo.js";
 
 export function authentication({ refresh, select } = { refresh: false, select: '' }) {
     return async (req, res, next) => {
-        const authHeader = req.headers.authorization;
+        try {
+            const authHeader = req.headers.authorization;
 
-        if (!authHeader) {
-            notAuthorizedException('Unauthorized access, token missing')
+            if (!authHeader) {
+                notAuthorizedException('Unauthorized access, token missing')
+            }
+
+            const [authType, token] = authHeader.split(" ");
+
+            if (authType != 'Bearer') {
+                notAuthorizedException('Unauthorized access, Invalid token type')
+            }
+
+            const decodedToken = jwt.decode(token);
+            if (!decodedToken) {
+                notAuthorizedException('Unauthorized access, Invalid token')
+            }
+
+            const role = decodedToken?.aud;
+            const tokenType = decodedToken.type; //access or refresh
+
+            if (refresh && tokenType != TokenTypes.refresh || !refresh && tokenType != TokenTypes.access) {
+                notAuthorizedException('Unauthorized access, Invalid token type')
+            }
+
+            const { accessSignature, refreshSignature } = getSignature(role)
+            const signature = tokenType == TokenTypes.access ? accessSignature : refreshSignature
+
+            const verified = jwt.verify(token, signature);
+
+            const user = await findOne(userModel, { _id: verified.sub }, select)
+            if (!user) {
+                notAuthorizedException('Unauthorized access, user not found')
+            }
+
+            if (user.changeCredentialsAt > new Date(verified.iat * 1000)) {
+                notAuthorizedException('You are logged out, login again')
+            }
+
+            const isLoggedOut = await get(blockedToken(decodedToken.id))
+            if (isLoggedOut) {
+                notAuthorizedException('You are logged out, login again')
+            }
+
+            req.user = user;
+            req.decodedToken = decodedToken;
+            return next();
+        } catch (err) {
+            return next(err);
         }
-
-        const [authType, token] = authHeader.split(" ");
-
-        if (authType != 'Bearer') {
-            notAuthorizedException('Unauthorized access, Invalid token type')
-        }
-
-        const decodedToken = jwt.decode(token);
-        const role = decodedToken?.aud;
-        const tokenType = decodedToken.type; //access or refresh
-
-        if (refresh && tokenType != TokenTypes.refresh || !refresh && tokenType != TokenTypes.access) {
-            notAuthorizedException('Unauthorized access, Invalid token type')
-        }
-
-        const { accessSignature, refreshSignature } = getSignature(role)
-        const signature = tokenType == TokenTypes.access ? accessSignature : refreshSignature
-
-        const verified = jwt.verify(token, signature);
-
-        const user = await findOne(userModel, { _id: verified.sub }, select)
-        if (!user) {
-            notAuthorizedException('Unauthorized access, user not found')
-        }
-
-        if (user.changeCredentialsAt > new Date(verified.iat * 1000)) {
-            notAuthorizedException('You are logged out, login again')
-        }
-        console.log({ tokenId: decodedToken.id });
-
-        const isLoggedOut = await get(blockedToken(decodedToken.id))
-        if (isLoggedOut) {
-            notAuthorizedException('You are logged out, login again')
-        }
-
-        req.user = user;
-        req.decodedToken = decodedToken;
-        next();
     }
 }

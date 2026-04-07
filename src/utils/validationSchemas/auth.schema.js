@@ -12,7 +12,7 @@ export const signupSchema = {
         phone: commonValidation.phone.required(),
         DOB: commonValidation.DOB.required(),
         role: commonValidation.role.required(),
-        gender: commonValidation.gender.required(),
+        gender: commonValidation.gender,
     }).required()
 }
 

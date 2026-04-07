@@ -7,6 +7,7 @@ import userRouter from "./Modules/User/user.controller.js";
 import cors from "cors";
 import path from "path"
 import { testRedisConnection } from "./DB/redis.connection.js";
+import messageRouter from "./Modules/Message/message.controller.js";
 
 
 
@@ -20,6 +21,7 @@ export default async function bootstrap() {
     app.use('/uploads', express.static(path.resolve('./uploads')))
     app.use('/auth', authRouter)
     app.use('/user', userRouter)
+    app.use('/message', messageRouter)
     app.use(globalErrorHandling)
 
     app.listen(PORT, () => {
